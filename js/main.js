@@ -1,22 +1,31 @@
 /* global d3, moment */
 
+/**********************/
 /* By Mark van Dijken */
+/**********************/
 
-// load data from multiple sources concurrently and call plot when they're all finished
-// example taken from stackoverflow [6]
+
+// # QUANTIFIED SELF DASHBOARD WITH D3 #
+
+
+// ## LOADING... ##
+// load data from multiple sources concurrently, clean them up a bit
+// and call plot when they're all finished
+// (example taken from stackoverflow [6])
 d3.queue()
   .defer(d3.csv, '../data/ovlog.csv', cleanUpOvData)
   .defer(d3.csv, '../data/school_schedule.csv', cleanUpSchoolData)
   .await((error, ovData, schoolData) => {
     if (error) {
       console.error('problem loading data: ' + error);
-    }
-    else {
-      plot(ovData, schoolData);
+    } else {
+      plot(combineOvDataToTrips(ovData), schoolData);
     }
   });
 
-// settings object
+
+// ## SETTINGS ##
+// setting up the settings
 const config = {
   svg: {
     width: 1400,
@@ -41,28 +50,57 @@ const config = {
 };
 
 
+// ## DATA CLEANUP CREW ##
+// processing data to make it easier to handle
+
+// cleaup data from '../data/ovlog.csv'
+function cleanUpOvData(row) {
+  const checkinTime = row['Check-in'];
+  const checkoutTime = row['Check-uit'];
+  return {
+    type: row.Transactie,
+    time: checkinTime || checkoutTime, // return checkin if it exists
+    date: row.Datum.split('-').reverse().join('-'),
+    origin: row.Vertrek,
+    destination: row.Bestemming, // return checkout if it exists
+  };
+}
+
+// additional ovData processing that cant be done with only access to rows
+// turns check-in and check-out events into time periods with a beginning and an end
+function combineOvDataToTrips(ovData) {
+  const ovCheckins = ovData.filter(d => d.type === 'Check-in');
+  const ovCheckouts = ovData.filter(d => d.type === 'Check-uit');
+  return ovCheckouts.map((item, i) => {
+    const date = item.date;
+    return {
+      label: 'openbaar vervoer',
+      description: `${item.origin} - ${item.destination}`,
+      date: date,
+      beginning: moment(`${date} ${ovCheckins[i].time}`, 'YYYY-MM-DD HH:mm'),
+      end: moment(`${date} ${item.time}`,'YYYY-MM-DD HH:mm'),
+    };
+  });
+}
+
+// cleaup data from '../data/school_schedule.csv'
+function cleanUpSchoolData(row) {
+  const date = row['Start date'];
+  return {
+    label: 'School',
+    description: `${row.Activity} @ ${row.Location}`,
+    date: date,
+    beginning: moment( `${date} ${row['Start time']}`, 'YYYY-MM-DD HH:mm'),
+    end: moment( `${date} ${row['End time']}`, 'YYYY-MM-DD HH:mm'),
+  };
+}
+
+
+// ## PLOTTING AND SCHEMING ##
+// processing data to make it easier to handle
+
 // draw the visualisation
-function plot(rawOvData, rawSchoolData) {
-
-  // additional data processing
-
-  // turn checkin and checkout events into trips with a beginning and an end
-  function ovDataToTrips(ovData) {
-    const ovCheckins = ovData.filter(d => d.type === 'Check-in');
-    const ovCheckouts = ovData.filter(d => d.type === 'Check-uit');
-    return ovCheckouts.map((item, i) => {
-      const date = item.date;
-      return {
-        date: date,
-        description: `${item.origin} - ${item.destination}`,
-        beginning: moment(`${date} ${ovCheckins[i].time}`, 'YYYY-MM-DD HH:mm'),
-        end: moment(`${date} ${item.time}`,'YYYY-MM-DD HH:mm'),
-        label: 'openbaar vervoer',
-      };
-    });
-  }
-
-  const ovTrips = ovDataToTrips(rawOvData);
+function plot(ovTrips, rawSchoolData) {
 
   // nest the data by day for easy access
   const nestedByDay = d3.nest()
@@ -71,28 +109,30 @@ function plot(rawOvData, rawSchoolData) {
 
   // TODO:
   // write function that cuts off dayParts when they overlap
-  // 1. map
-
 
   // setup date selection controls
   const selectedDateOutput = document.querySelector('#selectedDateOutput');
   const previousDayControl = document.querySelector('#previousDayControl');
   const nextDayControl = document.querySelector('#nextDayControl');
 
-  function selectedDayFormatter(selectedDayDate) {
+  // make formatter for the date that is printed at the top of the visualisation
+  function formatSelectedDay(selectedDayDate) {
     return moment(
       selectedDayDate,
       'YYYY-MM-DD'
     ).locale('nl').format('dddd, D MMMM YYYY');
   }
 
+  // initialize variables for the selected day and
+  // all dynamic data that is dependent on the selected date
   let selectedDayN = 11; // initialize selected day number
   let currentDay = nestedByDay[selectedDayN % nestedByDay.length];
-  selectedDateOutput.textContent = selectedDayFormatter(currentDay.key);
+  selectedDateOutput.textContent = formatSelectedDay(currentDay.key); // key == date (see nest function)
   let currentDayParts = currentDay.values;
   let startOfSelectedDateStr = moment(currentDay.key, 'YYYY-MM-DD');
   let endOfSelectedDateStr = moment(startOfSelectedDateStr).add(1, 'days');
 
+  // update the values that need to change when selectedDayN is changed
   function updateCurrentDayValues() {
     currentDay = nestedByDay[selectedDayN % nestedByDay.length];
     currentDayParts = currentDay.values;
@@ -101,41 +141,45 @@ function plot(rawOvData, rawSchoolData) {
   }
 
   previousDayControl.addEventListener('click', () => {
-    --selectedDayN;
+    --selectedDayN; // move one day back
     updateCurrentDayValues();
-    selectedDateOutput.textContent = selectedDayFormatter(currentDay.key);
+    selectedDateOutput.textContent = formatSelectedDay(currentDay.key);
     redrawScale();
     drawTimeBlocks();
+    drawInfoBox(timeSelectionControl.value);
   });
 
   nextDayControl.addEventListener('click', () => {
-    ++selectedDayN %
+    ++selectedDayN; // move one day forward
     updateCurrentDayValues();
-    selectedDateOutput.textContent = selectedDayFormatter(currentDay.key);
+    selectedDateOutput.textContent = formatSelectedDay(currentDay.key);
     redrawScale();
     drawTimeBlocks();
+    drawInfoBox(timeSelectionControl.value);
   });
 
-  // create timeFormatting functions from the timeFormatLocale object
+  // create timeFormatting function for the x-axis
   const formatTimeHM = d3.timeFormat('%H:%M');
 
+  // construct the scale for the x-axis
   const scaleX = d3.scaleTime()
     .domain([
       startOfSelectedDateStr.toDate(),
       endOfSelectedDateStr.toDate()
-    ]) // (TODO: load dates from data instead of hard-coding it)
+    ])
     .range([0, config.svg.width]);
 
+  // create x-axis
   const xAxis = d3.axisBottom(scaleX)
     .ticks(24)
-    .tickFormat(formatTimeHM); // temp disable to see effects of changing scale
+    .tickFormat(formatTimeHM);
 
   // grab all labels from data, sort them, then remove all duplicate stings
   const uniqueLabels = ovTrips.map(d => d.label)
     .sort()
     .filter(removeDuplicates);
 
-  // create a scale which maps all possible label values to `d3.schemeCategory10` colors
+  // create a scale which maps all possible label values to the `d3.schemeCategory10` colors
   const colorScale = d3.scaleOrdinal()
     .domain(uniqueLabels)
     .range(d3.schemeCategory10);
@@ -165,9 +209,9 @@ function plot(rawOvData, rawSchoolData) {
 
   // input element that controls currently selected time
   const timeSelectionControl = document.querySelector('#timeSelectionControl');
-
   timeSelectionControl.addEventListener('input', onTimeSelectionChange);
 
+  // draw initial timeblocks
   drawTimeBlocks();
 
   // setup the timeSelectionIndicator
@@ -200,6 +244,7 @@ function plot(rawOvData, rawSchoolData) {
     updateTimeSelectionIndicator(timeSelectionControl.value);
   }
 
+  // redraw the x-axis to update the scale
   function redrawScale() {
     scaleX.domain([
       startOfSelectedDateStr.toDate(),
@@ -246,12 +291,11 @@ function plot(rawOvData, rawSchoolData) {
         .attr('x', '5')
         .attr('font-size', config.infobox.fontsize)
         .attr('font-family', 'Arial');
-    } //console.log(selectedDayPart[0]);
+    }
   }
 
   // draw the time blocks
   function drawTimeBlocks() {
-    console.log(currentDayParts);
     chart.selectAll('.block').remove();
     const groupAll = chart.selectAll('.block').data(currentDayParts);
     const groupAllEnter = groupAll.enter().append('g') // enter elements as groups [1]
@@ -265,29 +309,6 @@ function plot(rawOvData, rawSchoolData) {
       .attr('fill', d => colorScale(d.label))
       .attr('opacity', '0.3');
   }
-}
-
-function cleanUpOvData(row) {
-  const checkinTime = row['Check-in'] ? row['Check-in'] : null;
-  const checkoutTime = row['Check-uit'] ? row['Check-uit'] : null;
-  return {
-    type: row.Transactie,
-    time: checkinTime || checkoutTime, // return checkin if it exists
-    date: row.Datum.split('-').reverse().join('-'),
-    origin: row.Vertrek,
-    destination: row.Bestemming ? row.Bestemming : null, // return checkout if it exists
-  };
-}
-
-function cleanUpSchoolData(row) {
-  const date = row['Start date'];
-  return {
-    label: 'School',
-    description: `${row.Activity} @ ${row.Location}`,
-    date: date,
-    beginning: moment( `${date} ${row['Start time']}`, 'YYYY-MM-DD HH:mm'),
-    end: moment( `${date} ${row['End time']}`, 'YYYY-MM-DD HH:mm'),
-  };
 }
 
 // filters out strings that are the same as their predecessor [2]
