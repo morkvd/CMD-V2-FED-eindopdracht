@@ -1,7 +1,7 @@
 {
-  "name": "cmd-v2-fed3-toets2",
+  "name": "cmd-v2-fed3-eindopdracht",
   "version": "1.0.0",
-  "description": "frontend 3 assignment 2",
+  "description": "frontend 3 eindopdracht",
   "main": "main.js",
   "scripts": {
     "lint": "eslint ."
