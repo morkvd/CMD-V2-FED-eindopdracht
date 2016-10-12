@@ -8,10 +8,10 @@ d3.csv('../data/ovlog.csv', cleanUpOvData, plot);
 const config = {
   svg: {
     width: 1400,
-    height: 220,
+    height: 260,
     margin: {
       x: 60,
-      y: 40,
+      y: 60,
     },
   },
   bar: {
@@ -30,20 +30,24 @@ const config = {
 
 
 // draw the visualisation
-function plot(dayParts) {
+function plot(rawData) {
 
-  const ovCheckins = dayParts.filter(({ type }) => type === 'Check-in');
-  const ovCheckouts = dayParts.filter(({ type }) => type === 'Check-uit');
-  const ovTrips = ovCheckouts.map((item, i) => {
-    const date = item.date;
-    return {
-      date: date,
-      description: `${item.origin} - ${item.destination}`,
-      beginning: moment(`${date} ${ovCheckins[i].time}`, 'YYYY-MM-DD HH:mm'),
-      end: moment(`${date} ${item.time}`,'YYYY-MM-DD HH:mm'),
-      type: 'openbaar vervoer',
-    };
-  });
+  function ovDataToTrips(ovData) {
+    const ovCheckins = ovData.filter(d => d.type === 'Check-in');
+    const ovCheckouts = ovData.filter(d => d.type === 'Check-uit');
+    return ovCheckouts.map((item, i) => {
+      const date = item.date;
+      return {
+        date: date,
+        description: `${item.origin} - ${item.destination}`,
+        beginning: moment(`${date} ${ovCheckins[i].time}`, 'YYYY-MM-DD HH:mm'),
+        end: moment(`${date} ${item.time}`,'YYYY-MM-DD HH:mm'),
+        type: 'openbaar vervoer',
+      };
+    });
+  }
+
+  const ovTrips = ovDataToTrips(rawData);
 
   console.log(ovTrips);
 
@@ -76,7 +80,7 @@ function plot(dayParts) {
     .tickFormat(formatTimeHM);
 
   // grab all labels from data, sort them, then remove all duplicate stings
-  const uniqueLabels = dayParts.map(d => d.label)
+  const uniqueLabels = ovTrips.map(d => d.label)
     .sort()
     .filter(removeDuplicates);
 
@@ -159,9 +163,9 @@ function plot(dayParts) {
 
   // draw the info box
   function drawInfoBox(selectedTimePosition) {
-    const selectedDayPart = dayParts.filter(d => {
-      return (scaleX(d.startDatetime) < selectedTimePosition &&
-              selectedTimePosition < scaleX(d.stopDatetime));
+    const selectedDayPart = ovTrips.filter(d => {
+      return (scaleX(d.beginning.toDate()) < selectedTimePosition &&
+              selectedTimePosition < scaleX(d.end.toDate()));
     });
 
     infoBoxContainer.attr('transform', `translate(${ selectedTimePosition }, 0)`);
