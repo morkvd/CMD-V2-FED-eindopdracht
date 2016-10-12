@@ -77,7 +77,10 @@ function plot(rawOvData, rawSchoolData) {
   const nextDayControl = document.querySelector('#nextDayControl');
 
   let selectedDayN = 11;
-  selectedDateOutput.textContent = nestedByDay[selectedDayN % nestedByDay.length].key;
+  selectedDateOutput.textContent = moment(
+    nestedByDay[selectedDayN % nestedByDay.length].key,
+    'YYYY-MM-DD'
+  ).locale('nl').format('dddd, D MMMM YYYY');
   let currentDay = nestedByDay[selectedDayN % nestedByDay.length];
   let currentDayParts = currentDay.values;
   let startOfSelectedDateStr = moment(currentDay.key, 'YYYY-MM-DD');
@@ -101,7 +104,7 @@ function plot(rawOvData, rawSchoolData) {
     selectedDateOutput.textContent = moment(
       nestedByDay[ --selectedDayN % nestedByDay.length].key,
       'YYYY-MM-DD'
-    );
+    ).locale('nl').format('dddd, D MMMM YYYY');
     updateCurrentDayValues();
     redrawScale();
     drawTimeBlocks();
@@ -111,7 +114,7 @@ function plot(rawOvData, rawSchoolData) {
     selectedDateOutput.textContent = moment(
       nestedByDay[ ++selectedDayN % nestedByDay.length].key,
       'YYYY-MM-DD'
-    );
+    ).locale('nl').format('dddd, D MMMM YYYY');
     updateCurrentDayValues();
     redrawScale();
     drawTimeBlocks();
