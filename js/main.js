@@ -1,8 +1,8 @@
-/* global d3 */
+/* global d3, moment */
 
 /* By Mark van Dijken */
 
-d3.csv('../data/20160919locations.csv', cleanUpData, plot);
+d3.csv('../data/ovlog.csv', cleanUpOvData, plot);
 
 // settings object
 const config = {
@@ -31,6 +31,21 @@ const config = {
 
 // draw the visualisation
 function plot(dayParts) {
+
+  const ovCheckins = dayParts.filter(({ type }) => type === 'Check-in');
+  const ovCheckouts = dayParts.filter(({ type }) => type === 'Check-uit');
+  const ovTrips = ovCheckouts.map((item, i) => {
+    const date = item.date;
+    return {
+      date: date,
+      description: `${item.origin} - ${item.destination}`,
+      beginning: moment(`${date} ${ovCheckins[i].time}`, 'YYYY-MM-DD HH:mm'),
+      end: moment(`${date} ${item.time}`,'YYYY-MM-DD HH:mm'),
+      type: 'openbaar vervoer',
+    };
+  });
+
+  console.log(ovTrips);
 
   // creates time formating function (example from stackoverflow [4])'
   // nl locale definition
@@ -167,19 +182,19 @@ function plot(dayParts) {
         .attr('font-size', config.infobox.fontsize)
         .attr('font-family', 'Arial');
     }
-    console.log(selectedDayPart[0]);
+    //console.log(selectedDayPart[0]);
   }
 
   // draw the time blocks
   function drawTimeBlocks() {
-    const groupAll = chart.selectAll('.block').data(dayParts);
+    const groupAll = chart.selectAll('.block').data(ovTrips);
     const groupAllEnter = groupAll.enter().append('g') // enter elements as groups [1]
       .attr('class', 'block');
 
     groupAllEnter.append('rect');
     groupAllEnter.select('rect')
-      .attr('width', d =>  scaleX(d.stopDatetime) - scaleX(d.startDatetime))
-      .attr('x', d => scaleX(d.startDatetime))
+      .attr('width', d =>  scaleX(d.end.toDate()) - scaleX(d.beginning.toDate()))
+      .attr('x', d => scaleX(d.beginning.toDate()))
       .attr('y', config.svg.margin.y)
       .attr('height', config.bar.height)
       .attr('fill', d => colorScale(d.label));
@@ -187,20 +202,18 @@ function plot(dayParts) {
   }
 }
 
-// transforms dateTimeStings into js date objects
-function cleanUpData(row) {
-  return {
-    description: row.description,
-    startDatetime: new Date(stripTimezone(row.startDatetime)),
-    stopDatetime: new Date(stripTimezone(row.stopDatetime)),
-    label: row.label,
-    type: row.type,
-  };
-}
+// renames ov collumns / merges some fields
+function cleanUpOvData(row) {
+  const checkinTime = row['Check-in'] ? row['Check-in'] : null;
+  const checkoutTime = row['Check-uit'] ? row['Check-uit'] : null;
 
-// remove timezone info from datetimeString
-function stripTimezone(datetimeString) {
-  return datetimeString.split('+')[0];
+  return {
+    type: row.Transactie,
+    time: checkinTime || checkoutTime, // return checkin if it exists
+    date: row.Datum.split('-').reverse().join('-'),
+    origin: row.Vertrek,
+    destination: row.Bestemming ? row.Bestemming : null, // return checkout if it exists
+  };
 }
 
 // filters out strings that are the same as their predecessor [2]
