@@ -44,7 +44,7 @@ const config = {
 // draw the visualisation
 function plot(rawOvData, rawSchoolData) {
 
-  // setup work
+  // additional data processing
 
   // turn checkin and checkout events into trips with a beginning and an end
   function ovDataToTrips(ovData) {
@@ -69,19 +69,26 @@ function plot(rawOvData, rawSchoolData) {
     .key(d => d.date)
     .entries(Array.concat(ovTrips, rawSchoolData));
 
+  // TODO:
+  // write function that cuts off dayParts when they overlap
   // 1. map
 
 
+  // setup date selection controls
   const selectedDateOutput = document.querySelector('#selectedDateOutput');
   const previousDayControl = document.querySelector('#previousDayControl');
   const nextDayControl = document.querySelector('#nextDayControl');
 
-  let selectedDayN = 11;
-  selectedDateOutput.textContent = moment(
-    nestedByDay[selectedDayN % nestedByDay.length].key,
-    'YYYY-MM-DD'
-  ).locale('nl').format('dddd, D MMMM YYYY');
+  function selectedDayFormatter(selectedDayDate) {
+    return moment(
+      selectedDayDate,
+      'YYYY-MM-DD'
+    ).locale('nl').format('dddd, D MMMM YYYY');
+  }
+
+  let selectedDayN = 11; // initialize selected day number
   let currentDay = nestedByDay[selectedDayN % nestedByDay.length];
+  selectedDateOutput.textContent = selectedDayFormatter(currentDay.key);
   let currentDayParts = currentDay.values;
   let startOfSelectedDateStr = moment(currentDay.key, 'YYYY-MM-DD');
   let endOfSelectedDateStr = moment(startOfSelectedDateStr).add(1, 'days');
@@ -91,31 +98,20 @@ function plot(rawOvData, rawSchoolData) {
     currentDayParts = currentDay.values;
     startOfSelectedDateStr = moment(currentDay.key, 'YYYY-MM-DD');
     endOfSelectedDateStr = moment(startOfSelectedDateStr).add(1, 'days');
-    console.log(
-      'selectedDayN:', selectedDayN,
-      'currentDay:', currentDay,
-      'currentDayParts', currentDayParts,
-      'startOfSelectedDateStr:', startOfSelectedDateStr.format(),
-      'endOfSelectedDateStr:', endOfSelectedDateStr.format()
-    );
   }
 
   previousDayControl.addEventListener('click', () => {
-    selectedDateOutput.textContent = moment(
-      nestedByDay[ --selectedDayN % nestedByDay.length].key,
-      'YYYY-MM-DD'
-    ).locale('nl').format('dddd, D MMMM YYYY');
+    --selectedDayN;
     updateCurrentDayValues();
+    selectedDateOutput.textContent = selectedDayFormatter(currentDay.key);
     redrawScale();
     drawTimeBlocks();
   });
 
   nextDayControl.addEventListener('click', () => {
-    selectedDateOutput.textContent = moment(
-      nestedByDay[ ++selectedDayN % nestedByDay.length].key,
-      'YYYY-MM-DD'
-    ).locale('nl').format('dddd, D MMMM YYYY');
+    ++selectedDayN %
     updateCurrentDayValues();
+    selectedDateOutput.textContent = selectedDayFormatter(currentDay.key);
     redrawScale();
     drawTimeBlocks();
   });
