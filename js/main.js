@@ -42,7 +42,7 @@ function plot(rawData) {
         description: `${item.origin} - ${item.destination}`,
         beginning: moment(`${date} ${ovCheckins[i].time}`, 'YYYY-MM-DD HH:mm'),
         end: moment(`${date} ${item.time}`,'YYYY-MM-DD HH:mm'),
-        type: 'openbaar vervoer',
+        label: 'openbaar vervoer',
       };
     });
   }
@@ -64,12 +64,8 @@ function plot(rawData) {
     'shortMonths': ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec']
   }; // copied from d3 locales on github [5]
 
-  // create a timeFormatLocale object
-  const NL = d3.timeFormatLocale(nl_NL);
-
   // create timeFormatting functions from the timeFormatLocale object
-  const formatTimeHMS = NL.format('%X');
-  const formatTimeHM = NL.format('%H:%M');
+  const formatTimeHM = d3.timeFormatLocale(nl_NL).format('%H:%M');
 
   const scaleX = d3.scaleTime()
     .domain([ new Date('2016-09-19T00:00:00'), new Date('2016-09-20T00:00:00') ]) // (TODO: load dates from data instead of hard-coding it)
@@ -129,9 +125,9 @@ function plot(rawData) {
     .attr('fill', 'red');
 
   timeSelectionIndicatorContainer.append('text')
-    .text('00:00:00')
+    .text('00:00')
     .attr('fill', 'black')
-    .attr('x', '-29')
+    .attr('x', '-19')
     .attr('y', '220')
     .attr('font-size', '16')
     .attr('font-family', 'Arial');
@@ -153,9 +149,9 @@ function plot(rawData) {
     timeSelectionIndicatorContainer.attr('transform', `translate(${ selectedTimePosition }, 0)`);
     timeSelectionIndicatorContainer.select('text').remove();
     timeSelectionIndicatorContainer.append('text')
-      .text(formatTimeHMS(scaleX.invert(selectedTimePosition)))
+      .text(moment(scaleX.invert(selectedTimePosition)).format('HH:mm'))
       .attr('fill', 'black')
-      .attr('x', '-30')
+      .attr('x', '-19')
       .attr('y', '220')
       .attr('font-size', '16')
       .attr('font-family', 'Arial');
@@ -179,7 +175,7 @@ function plot(rawData) {
         .text(selectedDayPart[0].description);
       infoBoxContainer.append('text')
         .attr('y', config.infobox.lineheight * 2)
-        .text(`${ formatTimeHM(selectedDayPart[0].startDatetime) } - ${formatTimeHM(selectedDayPart[0].stopDatetime)}`);
+        .text(`${ moment(selectedDayPart[0].beginning).format('HH:mm') } - ${moment(selectedDayPart[0].end).format('HH:mm')}`);
       infoBoxContainer.selectAll('text')
         .attr('fill', 'black')
         .attr('x', '5')
