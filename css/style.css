@@ -1,3 +1,9 @@
+#previousDayControl,
+#nextDayControl,
+#selectedDateOutput {
+  display: inline;
+}
+
 #timeSelectionDisplay {
   display: block;
 }
