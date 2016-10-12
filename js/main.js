@@ -65,11 +65,9 @@ function plot(rawOvData, rawSchoolData) {
     .key(d => d.date)
     .entries(Array.concat(ovTrips, rawSchoolData));
 
-  let possibleDays = nestedByDay.map(d => d.key);
+  const possibleDays = nestedByDay.map(d => d.key);
   let currentDay = nestedByDay[10].values;
 
-  console.log(currentDay);
-  console.log(possibleDays[10]);
 
   // creates time formating function (example from stackoverflow [4])'
   // nl locale definition
