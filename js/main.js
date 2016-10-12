@@ -2,7 +2,19 @@
 
 /* By Mark van Dijken */
 
-d3.csv('../data/ovlog.csv', cleanUpOvData, plot);
+// load data from multiple sources concurrently and call plot when they're all finished
+// example taken from stackoverflow [6]
+d3.queue()
+  .defer(d3.csv, '../data/ovlog.csv', cleanUpOvData)
+  .defer(d3.csv, '../data/school_schedule.csv', cleanUpSchoolData)
+  .await((error, ovData, schoolData) => {
+    if (error) {
+      console.error('problem loading data: ' + error);
+    }
+    else {
+      plot(ovData, schoolData);
+    }
+  });
 
 // settings object
 const config = {
@@ -30,7 +42,7 @@ const config = {
 
 
 // draw the visualisation
-function plot(rawData) {
+function plot(rawOvData, rawSchoolData) {
 
   function ovDataToTrips(ovData) {
     const ovCheckins = ovData.filter(d => d.type === 'Check-in');
@@ -47,9 +59,17 @@ function plot(rawData) {
     });
   }
 
-  const ovTrips = ovDataToTrips(rawData);
+  const ovTrips = ovDataToTrips(rawOvData);
 
-  console.log(ovTrips);
+  const nestedByDay = d3.nest()
+    .key(d => d.date)
+    .entries(Array.concat(ovTrips, rawSchoolData));
+
+  let possibleDays = nestedByDay.map(d => d.key);
+  let currentDay = nestedByDay[10].values;
+
+  console.log(currentDay);
+  console.log(possibleDays[10]);
 
   // creates time formating function (example from stackoverflow [4])'
   // nl locale definition
@@ -68,7 +88,10 @@ function plot(rawData) {
   const formatTimeHM = d3.timeFormatLocale(nl_NL).format('%H:%M');
 
   const scaleX = d3.scaleTime()
-    .domain([ new Date('2016-09-19T00:00:00'), new Date('2016-09-20T00:00:00') ]) // (TODO: load dates from data instead of hard-coding it)
+    .domain([
+      moment(possibleDays[10], 'YYYY-MM-DD').toDate(),
+      moment(possibleDays[10 + 1], 'YYYY-MM-DD').toDate()
+    ]) // (TODO: load dates from data instead of hard-coding it)
     .range([0, config.svg.width]);
 
   const xAxis = d3.axisBottom(scaleX)
@@ -159,7 +182,7 @@ function plot(rawData) {
 
   // draw the info box
   function drawInfoBox(selectedTimePosition) {
-    const selectedDayPart = ovTrips.filter(d => {
+    const selectedDayPart = currentDay.filter(d => {
       return (scaleX(d.beginning.toDate()) < selectedTimePosition &&
               selectedTimePosition < scaleX(d.end.toDate()));
     });
@@ -187,7 +210,7 @@ function plot(rawData) {
 
   // draw the time blocks
   function drawTimeBlocks() {
-    const groupAll = chart.selectAll('.block').data(ovTrips);
+    const groupAll = chart.selectAll('.block').data(currentDay);
     const groupAllEnter = groupAll.enter().append('g') // enter elements as groups [1]
       .attr('class', 'block');
 
@@ -202,11 +225,11 @@ function plot(rawData) {
   }
 }
 
-// renames ov collumns / merges some fields
+
+
 function cleanUpOvData(row) {
   const checkinTime = row['Check-in'] ? row['Check-in'] : null;
   const checkoutTime = row['Check-uit'] ? row['Check-uit'] : null;
-
   return {
     type: row.Transactie,
     time: checkinTime || checkoutTime, // return checkin if it exists
@@ -215,6 +238,19 @@ function cleanUpOvData(row) {
     destination: row.Bestemming ? row.Bestemming : null, // return checkout if it exists
   };
 }
+
+
+function cleanUpSchoolData(row) {
+  const date = row['Start date'];
+  return {
+    label: 'School',
+    description: `${row.Activity} @ ${row.Location}`,
+    date: date,
+    beginning: moment( `${date} ${row['Start time']}`, 'YYYY-MM-DD HH:mm'),
+    end: moment( `${date} ${row['End time']}`, 'YYYY-MM-DD HH:mm'),
+  };
+}
+
 
 // filters out strings that are the same as their predecessor [2]
 function removeDuplicates(item, pos, arr) {
@@ -227,3 +263,4 @@ function removeDuplicates(item, pos, arr) {
 // [3] http://stackoverflow.com/questions/814564/inserting-html-elements-with-javascript
 // [4] http://stackoverflow.com/questions/24385582/localization-of-d3-js-d3-locale-example-of-usage
 // [5] https://github.com/d3/d3-time-format/blob/master/locale/nl-NL.json
+// [6] http://stackoverflow.com/questions/21842384/importing-data-from-multiple-csv-files-in-d3
