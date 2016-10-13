@@ -114,12 +114,16 @@ function cleanUpSleepData(row) {
 
 // draw the visualisation
 function plot(ovTrips, schoolData, sleepData) {
-  console.log(sleepData);
 
   // nest the data by day for easy access
   const nestedByDay = d3.nest()
     .key(d => d.date)
-    .entries(Array.concat(ovTrips, schoolData, sleepData));
+    .entries(Array.concat(ovTrips, schoolData, sleepData))
+    .sort((left, right) => {
+      return moment.utc(left.key).diff(moment.utc(right.key));
+    });
+
+  console.log(nestedByDay);
 
   // TODO:
   // write function that cuts off dayParts when they overlap
