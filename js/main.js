@@ -16,11 +16,12 @@ d3.queue()
   .defer(d3.csv, '../data/ovlog.csv', cleanUpOvData)
   .defer(d3.csv, '../data/school_schedule.csv', cleanUpSchoolData)
   .defer(d3.tsv, '../data/slaap.tsv', cleanUpSleepData)
-  .await((error, ovData, schoolData, sleepData) => {
+  .defer(d3.tsv, '../data/emotie.tsv', cleanUpEmotionData)
+  .await((error, ovData, schoolData, sleepData, emotionData) => {
     if (error) {
       console.error('problem loading data: ' + error);
     } else {
-      plot(combineOvDataToTrips(ovData), schoolData, sleepData);
+      plot(combineOvDataToTrips(ovData), schoolData, sleepData, emotionData);
     }
   });
 
@@ -52,6 +53,9 @@ const config = {
   infobox: {
     lineheight: 16,
     fontsize: '0.71em', // same as axis font-size
+  },
+  emotions: {
+    height: 300,
   }
 };
 
@@ -80,6 +84,7 @@ function combineOvDataToTrips(ovData) {
   return ovCheckouts.map((item, i) => {
     const date = item.date;
     return {
+      type: 'timeline',
       label: 'openbaar vervoer',
       description: `${item.origin} - ${item.destination}`,
       date: date,
@@ -93,6 +98,7 @@ function combineOvDataToTrips(ovData) {
 function cleanUpSchoolData(row) {
   const date = row['Start date'];
   return {
+    type: 'timeline',
     label: 'school',
     description: `${row.Activity} @ ${row.Location}`,
     date: date,
@@ -105,6 +111,7 @@ function cleanUpSchoolData(row) {
 function cleanUpSleepData(row) {
   const date = moment( row.Slaap, 'M/D/YY').format('YYYY-MM-DD');
   return {
+    type: 'timeline',
     label: 'slaap',
     description: 'ZZzzZZzz',
     date: date,
@@ -113,22 +120,53 @@ function cleanUpSleepData(row) {
   };
 }
 
+function cleanUpEmotionData(row) {
+  const date = moment( row.Emotie, 'M/D/YY').format('YYYY-MM-DD');
+  return {
+    type: 'emotion',
+    label: 'emotie',
+    description: row.Wat,
+    date: date,
+    arousal: row.Arousal,
+    valence: row.Valance,
+    time: moment(`${date} ${row.Tijd}`, 'YYYY-MM-DD HHmm'),
+  };
+}
+
 
 // ## PLOTTING AND SCHEMING ##
 // processing data to make it easier to handle
 
 // draw the visualisation
-function plot(ovTrips, schoolData, sleepData) {
+function plot(ovTrips, schoolData, sleepData, emotionData) {
 
   // nest the data by day for easy access
-  const nestedByDay = d3.nest()
+  // sorting function from
+  // http://stackoverflow.com/questions/28013045/sort-array-by-date-gives-unexpected-results
+  const dayPartNestedByDay = d3.nest()
     .key(d => d.date)
     .entries(Array.concat(ovTrips, schoolData, sleepData))
     .sort((left, right) => {
       return moment.utc(left.key).diff(moment.utc(right.key));
     });
 
-  console.log(nestedByDay);
+    console.log(dayPartNestedByDay);
+
+  const emotionsNestedByDay = d3.nest()
+    .key(d => d.date)
+    .entries(emotionData)
+    .sort((left, right) => {
+      return moment.utc(left.key).diff(moment.utc(right.key));
+    });
+
+  console.log(emotionsNestedByDay);
+  //
+  // const emotionsNestedByDay = d3.nest()
+  //   .key(d => d.date)
+  //   .entries(emotionData)
+  //   .sort((left, right) => {
+  //     return moment.utc(left.key).diff(moment.utc(right.key));
+  //   });
 
   // TODO:
   // write function that cuts off dayParts when they overlap
@@ -149,7 +187,8 @@ function plot(ovTrips, schoolData, sleepData) {
   // initialize variables for the selected day and
   // all dynamic data that is dependent on the selected date
   let selectedDayN = 11; // initialize selected day number
-  let currentDay = nestedByDay[selectedDayN % nestedByDay.length];
+  let currentDay = dayPartNestedByDay[selectedDayN % dayPartNestedByDay.length];
+
   selectedDateOutput.textContent = formatSelectedDay(currentDay.key); // key == date (see nest function)
   let currentDayParts = currentDay.values;
   let startOfSelectedDateStr = moment(currentDay.key, 'YYYY-MM-DD');
@@ -157,7 +196,7 @@ function plot(ovTrips, schoolData, sleepData) {
 
   // update the values that need to change when selectedDayN is changed
   function updateCurrentDayValues() {
-    currentDay = nestedByDay[selectedDayN % nestedByDay.length];
+    currentDay = dayPartNestedByDay[selectedDayN % dayPartNestedByDay.length];
     currentDayParts = currentDay.values;
     startOfSelectedDateStr = moment(currentDay.key, 'YYYY-MM-DD');
     endOfSelectedDateStr = moment(startOfSelectedDateStr).add(1, 'days');
@@ -181,6 +220,7 @@ function plot(ovTrips, schoolData, sleepData) {
     drawInfoBox(timeSelectionControl.value);
   });
 
+
   // create timeFormatting function for the x-axis
   const formatTimeHM = d3.timeFormat('%H:%M');
 
@@ -196,6 +236,48 @@ function plot(ovTrips, schoolData, sleepData) {
   const xAxis = d3.axisBottom(scaleX)
     .ticks(24)
     .tickFormat(formatTimeHM);
+
+
+  // EMOTIONS
+  const scaleY = d3.scaleLinear()
+    .domain([0, 10])
+    .range([0, config.emotions.height ]);
+
+  const yAxis = d3.axisLeft(scaleY)
+    .ticks(10);
+
+  const emotionsChart = d3.select('svg')
+    .attr('class', 'emotions')
+    .attr('width', config.svg.width + config.svg.margin.x)
+    .attr('height', config.svg.height + (config.svg.margin.y / 2) )
+      .append('g')
+    .attr('transform', `translate(${ config.svg.margin.x / 2 }, ${ 20 })`);
+
+  emotionsChart.append('g')
+    .attr('class', 'xAxis')
+    .attr('transform', `translate(0, ${config.svg.margin.y + config.bar.height + config.bar.margin})`)
+    .call(xAxis);
+
+  emotionsChart.append('g')
+    .attr('class', 'yAxis')
+    .call(yAxis);
+
+  // function drawEmotions() {
+  //   emotionsChart.selectAll('.emote').remove();
+  //   const groupAll = timeline.selectAll('.emote').data(currentDayParts);
+  //   const groupAllEnter = groupAll.enter().append('g') // enter elements as groups [1]
+  //     .attr('class', 'block');
+  //   groupAllEnter.append('rect');
+  //   groupAllEnter.select('rect')
+  //     .attr('width', d =>  scaleX(d.end.toDate()) - scaleX(d.beginning.toDate()))
+  //     .attr('x', d => scaleX(d.beginning.toDate()))
+  //     .attr('y', config.svg.margin.y)
+  //     .attr('height', config.bar.height)
+  //     .attr('fill', d => colorScale(d.label))
+  //     .attr('opacity', '0.3');
+  //   }
+
+  // TIMELINE
 
   // grab all labels from data, sort them, then remove all duplicate stings
   const uniqueLabels = ovTrips.map(d => d.label)
