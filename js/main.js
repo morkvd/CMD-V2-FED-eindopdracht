@@ -207,16 +207,16 @@ function plot(ovTrips, schoolData, sleepData) {
     .domain(uniqueLabels)
     .range(d3.schemeCategory10);
 
-  // setup chart
-  const chart = d3.select('svg')
-    .attr('class', 'chart')
+  // setup timeline
+  const timeline = d3.select('svg')
+    .attr('class', 'timeline')
     .attr('width', config.svg.width + config.svg.margin.x)
     .attr('height', config.svg.height + (config.svg.margin.y / 2) )
       .append('g')
     .attr('transform', `translate(${ config.svg.margin.x / 2 }, ${ config.svg.margin.y })`);
 
   // add x-axis
-  chart.append('g')
+  timeline.append('g')
     .attr('class', 'xAxis')
     .attr('transform', `translate(0, ${config.svg.margin.y + config.bar.height + config.bar.margin})`)
     .call(xAxis);
@@ -238,7 +238,7 @@ function plot(ovTrips, schoolData, sleepData) {
   drawTimeBlocks();
 
   // setup the timeSelectionIndicator
-  const timeSelectionIndicatorContainer = chart.append('g')
+  const timeSelectionIndicatorContainer = timeline.append('g')
     .attr('class', 'timeSelectionIndicator');
 
   timeSelectionIndicatorContainer.append('rect')
@@ -257,7 +257,7 @@ function plot(ovTrips, schoolData, sleepData) {
     .attr('font-family', 'Arial');
 
   // setup infoBox
-  const infoBoxContainer = chart.append('g')
+  const infoBoxContainer = timeline.append('g')
     .attr('class', 'infoBox');
 
   // runs every time the range input is moved
@@ -273,7 +273,7 @@ function plot(ovTrips, schoolData, sleepData) {
       startOfSelectedDateStr.toDate(),
       endOfSelectedDateStr.toDate()
     ]);
-    chart.select('.xAxis')
+    timeline.select('.xAxis')
       .call(xAxis);
     // https://gist.github.com/phoebebright/3098488
   }
@@ -319,8 +319,8 @@ function plot(ovTrips, schoolData, sleepData) {
 
   // draw the time blocks
   function drawTimeBlocks() {
-    chart.selectAll('.block').remove();
-    const groupAll = chart.selectAll('.block').data(currentDayParts);
+    timeline.selectAll('.block').remove();
+    const groupAll = timeline.selectAll('.block').data(currentDayParts);
     const groupAllEnter = groupAll.enter().append('g') // enter elements as groups [1]
       .attr('class', 'block');
     groupAllEnter.append('rect');
