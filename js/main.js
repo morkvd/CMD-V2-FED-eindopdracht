@@ -150,8 +150,6 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
       return moment.utc(left.key).diff(moment.utc(right.key));
     });
 
-    console.log(dayPartNestedByDay);
-
   const emotionsNestedByDay = d3.nest()
     .key(d => d.date)
     .entries(emotionData)
@@ -159,17 +157,17 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
       return moment.utc(left.key).diff(moment.utc(right.key));
     });
 
-  console.log(emotionsNestedByDay);
-  //
-  // const emotionsNestedByDay = d3.nest()
-  //   .key(d => d.date)
-  //   .entries(emotionData)
-  //   .sort((left, right) => {
-  //     return moment.utc(left.key).diff(moment.utc(right.key));
-  //   });
+  // this can probably be done in a smarter way
+  const intersectedDayParts = dayPartNestedByDay.filter((value) => {
+    return emotionsNestedByDay.map(d => d.key).indexOf(value.key) > -1;
+  });
 
-  // TODO:
-  // write function that cuts off dayParts when they overlap
+  const intersectedEmotions = emotionsNestedByDay.filter((value) => {
+    return dayPartNestedByDay.map(d => d.key).indexOf(value.key) > -1;
+  });
+
+  console.log(intersectedDayParts);
+  console.log(intersectedEmotions);
 
   // setup date selection controls
   const selectedDateOutput = document.querySelector('#selectedDateOutput');
@@ -187,7 +185,7 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
   // initialize variables for the selected day and
   // all dynamic data that is dependent on the selected date
   let selectedDayN = 11; // initialize selected day number
-  let currentDay = dayPartNestedByDay[selectedDayN % dayPartNestedByDay.length];
+  let currentDay = intersectedDayParts[selectedDayN % intersectedDayParts.length];
 
   selectedDateOutput.textContent = formatSelectedDay(currentDay.key); // key == date (see nest function)
   let currentDayParts = currentDay.values;
@@ -196,7 +194,7 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
 
   // update the values that need to change when selectedDayN is changed
   function updateCurrentDayValues() {
-    currentDay = dayPartNestedByDay[selectedDayN % dayPartNestedByDay.length];
+    currentDay = intersectedDayParts[selectedDayN % intersectedDayParts.length];
     currentDayParts = currentDay.values;
     startOfSelectedDateStr = moment(currentDay.key, 'YYYY-MM-DD');
     endOfSelectedDateStr = moment(startOfSelectedDateStr).add(1, 'days');
