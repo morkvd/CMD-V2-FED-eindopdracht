@@ -15,11 +15,12 @@
 d3.queue()
   .defer(d3.csv, '../data/ovlog.csv', cleanUpOvData)
   .defer(d3.csv, '../data/school_schedule.csv', cleanUpSchoolData)
-  .await((error, ovData, schoolData) => {
+  .defer(d3.tsv, '../data/slaap.tsv', cleanUpSleepData)
+  .await((error, ovData, schoolData, sleepData) => {
     if (error) {
       console.error('problem loading data: ' + error);
     } else {
-      plot(combineOvDataToTrips(ovData), schoolData);
+      plot(combineOvDataToTrips(ovData), schoolData, sleepData);
     }
   });
 
@@ -87,11 +88,23 @@ function combineOvDataToTrips(ovData) {
 function cleanUpSchoolData(row) {
   const date = row['Start date'];
   return {
-    label: 'School',
+    label: 'school',
     description: `${row.Activity} @ ${row.Location}`,
     date: date,
     beginning: moment( `${date} ${row['Start time']}`, 'YYYY-MM-DD HH:mm'),
     end: moment( `${date} ${row['End time']}`, 'YYYY-MM-DD HH:mm'),
+  };
+}
+
+// cleanuo data from 'sleep.tsv'
+function cleanUpSleepData(row) {
+  const date = moment( row.Slaap, 'M/D/YY').format('YYYY-MM-DD');
+  return {
+    label: 'slaap',
+    description: 'ZZzzZZzz',
+    date: date,
+    beginning: moment(`${date} ${row['Start Slaap Tijd']}`, 'YYYY-MM-DD HH:mm'),
+    end: moment(`${date} ${row['Laatste Wekker Tijd']}`, 'YYYY-MM-DD HH:mm'),
   };
 }
 
@@ -100,12 +113,13 @@ function cleanUpSchoolData(row) {
 // processing data to make it easier to handle
 
 // draw the visualisation
-function plot(ovTrips, rawSchoolData) {
+function plot(ovTrips, schoolData, sleepData) {
+  console.log(sleepData);
 
   // nest the data by day for easy access
   const nestedByDay = d3.nest()
     .key(d => d.date)
-    .entries(Array.concat(ovTrips, rawSchoolData));
+    .entries(Array.concat(ovTrips, schoolData, sleepData));
 
   // TODO:
   // write function that cuts off dayParts when they overlap
