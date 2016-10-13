@@ -185,36 +185,44 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
   // initialize variables for the selected day and
   // all dynamic data that is dependent on the selected date
   let selectedDayN = 11; // initialize selected day number
-  let currentDay = intersectedDayParts[selectedDayN % intersectedDayParts.length];
+  let currentDayTimeline = intersectedDayParts[selectedDayN % intersectedDayParts.length];
+  let currentDayEmotion = intersectedEmotions[selectedDayN % intersectedEmotions.length];
 
-  selectedDateOutput.textContent = formatSelectedDay(currentDay.key); // key == date (see nest function)
-  let currentDayParts = currentDay.values;
-  let startOfSelectedDateStr = moment(currentDay.key, 'YYYY-MM-DD');
+  selectedDateOutput.textContent = formatSelectedDay(currentDayTimeline.key); // key == date (see nest function)
+  let currentDayParts = currentDayTimeline.values;
+  let currentDayEmotions = currentDayEmotion.values;
+  let startOfSelectedDateStr = moment(currentDayTimeline.key, 'YYYY-MM-DD');
   let endOfSelectedDateStr = moment(startOfSelectedDateStr).add(1, 'days');
 
   // update the values that need to change when selectedDayN is changed
   function updateCurrentDayValues() {
-    currentDay = intersectedDayParts[selectedDayN % intersectedDayParts.length];
-    currentDayParts = currentDay.values;
-    startOfSelectedDateStr = moment(currentDay.key, 'YYYY-MM-DD');
+    currentDayTimeline = intersectedDayParts[selectedDayN % intersectedDayParts.length];
+    currentDayEmotion = intersectedEmotions[selectedDayN % intersectedEmotions.length];
+    currentDayParts = currentDayTimeline.values;
+    currentDayEmotions = currentDayEmotion.values;
+
+      console.log(currentDayEmotions);
+    startOfSelectedDateStr = moment(currentDayTimeline.key, 'YYYY-MM-DD');
     endOfSelectedDateStr = moment(startOfSelectedDateStr).add(1, 'days');
   }
 
   previousDayControl.addEventListener('click', () => {
     --selectedDayN; // move one day back
     updateCurrentDayValues();
-    selectedDateOutput.textContent = formatSelectedDay(currentDay.key);
+    selectedDateOutput.textContent = formatSelectedDay(currentDayTimeline.key);
     redrawScale();
     drawTimeBlocks();
+    drawEmotions();
     drawInfoBox(timeSelectionControl.value);
   });
 
   nextDayControl.addEventListener('click', () => {
     ++selectedDayN; // move one day forward
     updateCurrentDayValues();
-    selectedDateOutput.textContent = formatSelectedDay(currentDay.key);
+    selectedDateOutput.textContent = formatSelectedDay(currentDayTimeline.key);
     redrawScale();
     drawTimeBlocks();
+    drawEmotions();
     drawInfoBox(timeSelectionControl.value);
   });
 
@@ -238,13 +246,13 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
 
   // EMOTIONS
   const scaleY = d3.scaleLinear()
-    .domain([0, 10])
-    .range([0, config.emotions.height ]);
+    .domain([10, 0])
+    .range([0, config.emotions.height]);
 
   const yAxis = d3.axisLeft(scaleY)
     .ticks(10);
 
-  const emotionsChart = d3.select('svg')
+  const emotionsChart = d3.select('svg').append('g')
     .attr('class', 'emotions')
     .attr('width', config.svg.width + config.svg.margin.x)
     .attr('height', config.svg.height + (config.svg.margin.y / 2) )
@@ -260,20 +268,21 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
     .attr('class', 'yAxis')
     .call(yAxis);
 
-  // function drawEmotions() {
-  //   emotionsChart.selectAll('.emote').remove();
-  //   const groupAll = timeline.selectAll('.emote').data(currentDayParts);
-  //   const groupAllEnter = groupAll.enter().append('g') // enter elements as groups [1]
-  //     .attr('class', 'block');
-  //   groupAllEnter.append('rect');
-  //   groupAllEnter.select('rect')
-  //     .attr('width', d =>  scaleX(d.end.toDate()) - scaleX(d.beginning.toDate()))
-  //     .attr('x', d => scaleX(d.beginning.toDate()))
-  //     .attr('y', config.svg.margin.y)
-  //     .attr('height', config.bar.height)
-  //     .attr('fill', d => colorScale(d.label))
-  //     .attr('opacity', '0.3');
-  //   }
+  function drawEmotions() {
+    emotionsChart.selectAll('.emote').remove();
+    const groupAll = emotionsChart.selectAll('.emote').data(currentDayEmotions);
+    const groupAllEnter = groupAll.enter().append('g') // enter elements as groups [1]
+      .attr('class', 'emote');
+    groupAllEnter.append('rect');
+    groupAllEnter.select('rect')
+      .attr('width', 10)
+      .attr('x', d => scaleX(d.time.toDate()))
+      .attr('y', d => scaleY(d.valence))
+      .attr('height', 10)
+      .attr('fill', 'red')
+      .attr('opacity', '0.3');
+  }
+
 
   // TIMELINE
 
@@ -316,6 +325,7 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
 
   // draw initial timeblocks
   drawTimeBlocks();
+  drawEmotions();
 
   // setup the timeSelectionIndicator
   const timeSelectionIndicatorContainer = timeline.append('g')
