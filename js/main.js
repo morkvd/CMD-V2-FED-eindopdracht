@@ -30,10 +30,10 @@ d3.queue()
 const config = {
   svg: {
     width: 1400,
-    height: 260,
+    height: 460,
     margin: {
       x: 60,
-      y: 60,
+      y: 200,
     },
   },
   bar: {
@@ -41,8 +41,13 @@ const config = {
     margin: 10,
   },
   slider: {
-    offset: 4,
+    offset: 23,
     padding: 13,
+  },
+  indicatorLine: {
+    height: 185,
+    offsetVert: 20,
+    timePos: 355,
   },
   infobox: {
     lineheight: 16,
@@ -206,7 +211,7 @@ function plot(ovTrips, schoolData, sleepData) {
   const chart = d3.select('svg')
     .attr('class', 'chart')
     .attr('width', config.svg.width + config.svg.margin.x)
-    .attr('height', config.svg.height + config.svg.margin.y)
+    .attr('height', config.svg.height + (config.svg.margin.y / 2) )
       .append('g')
     .attr('transform', `translate(${ config.svg.margin.x / 2 }, ${ config.svg.margin.y })`);
 
@@ -223,7 +228,7 @@ function plot(ovTrips, schoolData, sleepData) {
     .attr('max', config.svg.width)
     .attr('value', 0)
     .style('width', `${ config.svg.width + config.slider.padding }px`)
-    .style('margin', `0 ${ config.svg.margin.y / 2 + config.slider.offset }px`);
+    .style('margin', `0 ${ config.slider.offset }px`);
 
   // input element that controls currently selected time
   const timeSelectionControl = document.querySelector('#timeSelectionControl');
@@ -239,15 +244,15 @@ function plot(ovTrips, schoolData, sleepData) {
   timeSelectionIndicatorContainer.append('rect')
     .attr('width', 2)
     .attr('x', 0)
-    .attr('y', -8)
-    .attr('height', 210)
+    .attr('y', config.svg.margin.y - 50)
+    .attr('height', config.indicatorLine.height)
     .attr('fill', 'red');
 
   timeSelectionIndicatorContainer.append('text')
     .text('00:00')
     .attr('fill', 'black')
     .attr('x', '-19')
-    .attr('y', '220')
+    .attr('y', config.indicatorLine.timePos)
     .attr('font-size', '16')
     .attr('font-family', 'Arial');
 
@@ -281,7 +286,7 @@ function plot(ovTrips, schoolData, sleepData) {
       .text(moment(scaleX.invert(selectedTimePosition)).format('HH:mm'))
       .attr('fill', 'black')
       .attr('x', '-19')
-      .attr('y', '220')
+      .attr('y', config.indicatorLine.timePos)
       .attr('font-size', '16')
       .attr('font-family', 'Arial');
   }
@@ -292,7 +297,7 @@ function plot(ovTrips, schoolData, sleepData) {
       return (scaleX(d.beginning.toDate()) < selectedTimePosition &&
               selectedTimePosition < scaleX(d.end.toDate()));
     });
-    infoBoxContainer.attr('transform', `translate(${ selectedTimePosition }, 0)`);
+    infoBoxContainer.attr('transform', `translate(${ selectedTimePosition }, 160)`);
     infoBoxContainer.selectAll('text').remove();
     if (selectedDayPart[0]) {
       infoBoxContainer.append('text')
