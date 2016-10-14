@@ -19,7 +19,7 @@ d3.queue()
   .defer(d3.tsv, '../data/emotie.tsv', cleanUpEmotionData)
   .await((error, ovData, schoolData, sleepData, emotionData) => {
     if (error) {
-      console.error('problem loading data: ' + error);
+      console.error(`problem loading data: ${error}`);
     } else {
       plot(combineOvDataToTrips(ovData), schoolData, sleepData, emotionData);
     }
@@ -166,9 +166,6 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
     return dayPartNestedByDay.map(d => d.key).indexOf(value.key) > -1;
   });
 
-  console.log(intersectedDayParts);
-  console.log(intersectedEmotions);
-
   // setup date selection controls
   const selectedDateOutput = document.querySelector('#selectedDateOutput');
   const previousDayControl = document.querySelector('#previousDayControl');
@@ -201,7 +198,6 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
     currentDayParts = currentDayTimeline.values;
     currentDayEmotions = currentDayEmotion.values;
 
-      console.log(currentDayEmotions);
     startOfSelectedDateStr = moment(currentDayTimeline.key, 'YYYY-MM-DD');
     endOfSelectedDateStr = moment(startOfSelectedDateStr).add(1, 'days');
   }
