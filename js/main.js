@@ -31,7 +31,7 @@ d3.queue()
 const config = {
   svg: {
     width: 1400,
-    height: 460,
+    height: 660,
     margin: {
       x: 60,
       y: 200,
@@ -181,7 +181,7 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
 
   // initialize variables for the selected day and
   // all dynamic data that is dependent on the selected date
-  let selectedDayN = 11; // initialize selected day number
+  let selectedDayN = 6; // initialize selected day number
   let currentDayTimeline = intersectedDayParts[selectedDayN % intersectedDayParts.length];
   let currentDayEmotion = intersectedEmotions[selectedDayN % intersectedEmotions.length];
 
@@ -210,6 +210,7 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
     drawTimeBlocks();
     drawEmotions();
     drawInfoBox(timeSelectionControl.value);
+    d3.select('.timelineLabel').text(formatSelectedDay(currentDayTimeline.key));
   });
 
   nextDayControl.addEventListener('click', () => {
@@ -220,6 +221,7 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
     drawTimeBlocks();
     drawEmotions();
     drawInfoBox(timeSelectionControl.value);
+    d3.select('.timelineLabel').text(formatSelectedDay(currentDayTimeline.key));
   });
 
 
@@ -312,13 +314,23 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
     .attr('width', config.svg.width + config.svg.margin.x)
     .attr('height', config.svg.height + (config.svg.margin.y / 2) )
       .append('g')
-    .attr('transform', `translate(${ (config.svg.margin.x / 2) + 10 }, ${ config.svg.margin.y })`);
+    .attr('transform', `translate(${ (config.svg.margin.x / 2) + 10 }, ${ config.svg.margin.y + 50})`);
 
   // add x-axis
   timeline.append('g')
     .attr('class', 'xAxis')
     .attr('transform', `translate(0, ${config.svg.margin.y + config.bar.height + config.bar.margin})`)
     .call(xAxis);
+
+  timeline.append('text')
+    .attr('class', 'timelineLabel')
+    .attr('fill', 'black')
+    .attr('text-anchor', 'start')
+    .attr('x', 14)
+    .attr('y', 143)
+    .attr('font-size', '10')
+    .attr('font-family', 'Arial')
+    .text('Dagindeling van ' + formatSelectedDay(currentDayTimeline.key));
 
   // setup range input for date selection
   d3.select('#timeSelectionControl')

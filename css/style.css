@@ -31,5 +31,34 @@ p {
   font-size: 16px;
   font-family: 'Arial', sans-serif;
   margin: 0 auto;
-  width: 420px;
+  width: 470px;
+}
+
+.dayControls {
+  position: relative;
+}
+
+#previousDayControl {
+  position: absolute;
+  left: 0;
+  width: 8em;
+  top: 0;
+}
+#nextDayControl {
+  position: absolute;
+  right: 0;
+  width: 8em;
+  top: 0;
+}
+
+#selectedDateOutput {
+  text-align: center;
+  width: 100%;
+  display: inline-block;
+  font-size: 1.1em;
+}
+
+h1 {
+  font-size: 26px;
+  font-weight: normal;
 }
