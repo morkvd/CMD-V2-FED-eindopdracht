@@ -299,7 +299,7 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
   // TIMELINE
 
   // grab all labels from data, sort them, then remove all duplicate stings
-  const uniqueLabels = ovTrips.map(d => d.label)
+  const uniqueLabels = currentDayParts.map(d => d.label)
     .sort()
     .filter(removeDuplicates);
 
@@ -331,6 +331,58 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
     .attr('font-size', '10')
     .attr('font-family', 'Arial')
     .text('Dagindeling van ' + formatSelectedDay(currentDayTimeline.key));
+
+  const legend = timeline.append('g');
+  legend.append('rect')
+    .attr('fill', colorScale('slaap'))
+    .attr('x', 0)
+    .attr('y', 390)
+    .attr('width', '1em')
+    .attr('height', '1em')
+    .attr('opacity', '0.3');
+
+  legend.append('text')
+    .attr('fill', 'black')
+    .attr('text-anchor', 'start')
+    .attr('x', 20)
+    .attr('y', 400)
+    .attr('font-size', '10')
+    .attr('font-family', 'Arial')
+    .text('slaap (zelf bijgehouden)');
+
+  legend.append('rect')
+    .attr('fill', colorScale('openbaar vervoer'))
+    .attr('x', 0)
+    .attr('y', 390 + 20)
+    .attr('width', '1em')
+    .attr('height', '1em')
+    .attr('opacity', '0.3');
+
+  legend.append('text')
+    .attr('fill', 'black')
+    .attr('text-anchor', 'start')
+    .attr('x', 20)
+    .attr('y', 400 + 20)
+    .attr('font-size', '10')
+    .attr('font-family', 'Arial')
+    .text('openbaar vervoer (data van ovchipkaart website)');
+
+  legend.append('rect')
+    .attr('fill', colorScale('school'))
+    .attr('x', 0)
+    .attr('y', 390 + 40)
+    .attr('width', '1em')
+    .attr('height', '1em')
+    .attr('opacity', '0.3');
+
+  legend.append('text')
+    .attr('fill', 'black')
+    .attr('text-anchor', 'start')
+    .attr('x', 20)
+    .attr('y', 400 + 40)
+    .attr('font-size', '10')
+    .attr('font-family', 'Arial')
+    .text('school (data uit rooster)');
 
   // setup range input for date selection
   d3.select('#timeSelectionControl')
