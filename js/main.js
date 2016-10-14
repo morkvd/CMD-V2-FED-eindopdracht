@@ -121,7 +121,7 @@ function cleanUpSleepData(row) {
 }
 
 function cleanUpEmotionData(row) {
-  const date = moment( row.Emotie, 'M/D/YY').format('YYYY-MM-DD');
+  const date = moment(row.Emotie, 'M/D/YY').format('YYYY-MM-DD');
   return {
     type: 'emotion',
     label: 'emotie',
@@ -253,30 +253,44 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
     .attr('width', config.svg.width + config.svg.margin.x)
     .attr('height', config.svg.height + (config.svg.margin.y / 2) )
       .append('g')
-    .attr('transform', `translate(${ config.svg.margin.x / 2 }, ${ 20 })`);
+    .attr('transform', `translate(${ (config.svg.margin.x / 2) + 10  }, ${ 20 })`);
 
   emotionsChart.append('g')
     .attr('class', 'xAxis')
     .attr('transform', `translate(0, ${config.svg.margin.y + config.bar.height + config.bar.margin})`)
     .call(xAxis);
 
-  emotionsChart.append('g')
+  const yAxisGroup = emotionsChart.append('g')
     .attr('class', 'yAxis')
     .call(yAxis);
+
+  yAxisGroup.append('text')
+    .attr('fill', 'black')
+    .attr('text-anchor', 'start')
+    .attr('x', 14)
+    .attr('y', 3)
+    .attr('font-size', '10')
+    .attr('font-family', 'Arial')
+    .text('humeur op een schaal van 0 - 10');
 
   function drawEmotions() {
     emotionsChart.selectAll('.emote').remove();
     const groupAll = emotionsChart.selectAll('.emote').data(currentDayEmotions);
     const groupAllEnter = groupAll.enter().append('g') // enter elements as groups [1]
       .attr('class', 'emote');
-    groupAllEnter.append('rect');
-    groupAllEnter.select('rect')
-      .attr('width', 10)
-      .attr('x', d => scaleX(d.time.toDate()))
-      .attr('y', d => scaleY(d.valence))
-      .attr('height', 10)
-      .attr('fill', 'red')
-      .attr('opacity', '0.3');
+
+    const line = d3.line()
+      .x((d) => scaleX(d.time.toDate()))
+      .y((d) => scaleY(d.valence));
+
+    groupAllEnter.append('path')
+      .datum(currentDayEmotions)
+      .attr('class', 'line')
+      .attr('fill', 'none')
+      .attr('stroke', 'black')
+      .attr('shape-rendering', 'auto')
+      .attr('stroke-width', '1.9px')
+      .attr('d', line);
   }
 
 
@@ -298,7 +312,7 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
     .attr('width', config.svg.width + config.svg.margin.x)
     .attr('height', config.svg.height + (config.svg.margin.y / 2) )
       .append('g')
-    .attr('transform', `translate(${ config.svg.margin.x / 2 }, ${ config.svg.margin.y })`);
+    .attr('transform', `translate(${ (config.svg.margin.x / 2) + 10 }, ${ config.svg.margin.y })`);
 
   // add x-axis
   timeline.append('g')
@@ -313,7 +327,7 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
     .attr('max', config.svg.width)
     .attr('value', 0)
     .style('width', `${ config.svg.width + config.slider.padding }px`)
-    .style('margin', `0 ${ config.slider.offset }px`);
+    .style('margin', `0 ${ config.slider.offset + 10 }px`);
 
   // input element that controls currently selected time
   const timeSelectionControl = document.querySelector('#timeSelectionControl');

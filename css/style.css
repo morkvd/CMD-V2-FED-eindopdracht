@@ -26,3 +26,10 @@
 p {
   margin: 0.2em;
 }
+
+.box {
+  font-size: 16px;
+  font-family: 'Arial', sans-serif;
+  margin: 0 auto;
+  width: 420px;
+}
