@@ -210,7 +210,7 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
     drawTimeBlocks();
     drawEmotions();
     drawInfoBox(timeSelectionControl.value);
-    d3.select('.timelineLabel').text(formatSelectedDay(currentDayTimeline.key));
+    d3.select('.timelineLabel').text('Dagindeling van ' + formatSelectedDay(currentDayTimeline.key));
   });
 
   nextDayControl.addEventListener('click', () => {
@@ -221,7 +221,7 @@ function plot(ovTrips, schoolData, sleepData, emotionData) {
     drawTimeBlocks();
     drawEmotions();
     drawInfoBox(timeSelectionControl.value);
-    d3.select('.timelineLabel').text(formatSelectedDay(currentDayTimeline.key));
+    d3.select('.timelineLabel').text('Dagindeling van ' + formatSelectedDay(currentDayTimeline.key));
   });
 
 
